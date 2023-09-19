@@ -6,6 +6,7 @@
 #                                                                   #
 # ----------------------------------------------------------------- #
 #   Version:    0.1  - Basic gameplay mechanic              | MSU | #
+#               0.2  - Rework and code documentation        | SKA | #
 # ----------------------------------------------------------------- #
 #                                                                   #
 #####################################################################
@@ -66,11 +67,11 @@ class Ball:
                             (see COORDS_x[])
         """
         # Setting up circle properties from given COORDS_x[]
-        self.coord = (coord[0], coord[1])
-        self.color = coord[2]
-        self.position = ((BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[0] + 1),
-                         (BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[1] + 1))
-        self.selected = BALL_NOMARK
+        self.coord      = (coord[0], coord[1])
+        self.colour     = coord[2]
+        self.position   = ((BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[0] + 1),
+                           (BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[1] + 1))
+        self.selected   = BALL_NOMARK
         self.neighbours = []
 
 
@@ -81,7 +82,7 @@ class Ball:
         Depending on the status of the selection property the circle gets highlighted
         with an additional rim.
         """
-        pygame.draw.circle(g_screen, self.color, self.position, BALL_RADIUS)
+        pygame.draw.circle(g_screen, self.colour, self.position, BALL_RADIUS)
         if self.selected > BALL_NOMARK:
             pygame.draw.circle(g_screen, GREEN, self.position, BALL_RADIUS, self.selected)
 
@@ -108,24 +109,119 @@ class Ball:
         ball. If the neighbour is free (colour: WHITE) the property "selected" gets updated.
         """
         for selectableBall in self.neighbours:
-            if (selectableBall.color is WHITE and selectableBall.selected == BALL_NOMARK):
+            if (selectableBall.colour is WHITE and selectableBall.selected == BALL_NOMARK):
                 selectableBall.selected = BALL_MARK_S
                 selectableBall.checkMove()
 
 class Game:
     def __init__(self):
-        pass
+        """
+        Function Game.__init__(self):
+        Creates main relations of the individual balls in COORDS and unites them in a
+        game context. This is done by initally adding all available balls of COORDS to
+        one array that is used as a reference during the game.
+        Secondly, the same array is used to determine all neighbours for each ball
+        horizontally as well as vertically by iterating through the array.
+        Furthermore some game variable get declared.
+        """
+        self.counter = 0                        # Moves counter for the game
+        self.isBallSelected = False             # Boolean value if a ball is selected 
+        self.selectedBall = Ball((0,0, GREEN))  # Variable to hold the selected ball object
+        self.balls = []                         # List that holds all ball objects in COORDS
+
+        # Append balls[]-list with a new ball for each ball in COORDS
+        for coord in COORDS:
+            self.balls.append(Ball(coord))
+
+        # Iterate through all balls 
+        for ball in self.balls:
+            # Specify one ball to be checked
+            for ballToCheck in self.balls:
+                # Check the ball for neighbour balls
+                if ball is not ballToCheck:
+                    # Horizontal check
+                    if (abs(ball.coord[0] - ballToCheck[0]) == 1
+                    and abs(ball.coord[1] - ballToCheck[1])) == 0:
+                        ball.neighbours.append(ballToCheck)
+                    # Vertical check
+                    if (abs(ball.coord[0] - ballToCheck[0]) == 0
+                    and abs(ball.coord[1] - ballToCheck[1])) == 1:
+                        ball.neighbours.append(ballToCheck)
 
     def draw(self):
-        pass
+        """
+        Function Game.draw(self):
+        Simple drwa function, that sets up the background and calls the Ball.draw()-function
+        for each ball used in the game.
+        Furthermore the counter display gets added to picture.
+        """
+        # Fill background of the playing field with the background colour
+        g_screen.fill(BG_COLOUR)
+
+        # Call the draw()-function for each ball of balls[] 
+        for ball in self.balls:
+            ball.draw()
+
+        # Add current moves counter to the canvas
+        img = g_font.render("Moves: " + str(self.counter), True, BLACK)
+        g_screen.blit(img, (20, 20))
 
     def clicked(self, position):
-        pass
+        """
+        Function Game.clicked(self, position):
+        Determines if the clicked-event is used on a ball, by comparing the mouse
+        position to the position and the surface of each ball used in the game.
 
+        parma[in]   position    current position of the mouse during a click-event
+        """
+        # Iterate through all balls in the game
+        for ball in self.balls:
+            # Check if the mouse position is inside the surface of the ball
+            if (distance(position, ball.position) < BALL_RADIUS):
+                # Case(1): No ball is selected atm and the observed ball is not white.
+                #   -> Select it and set depending variables accordingly.
+                if not self.isBallSelected and ball.colour is not WHITE:
+                    ball.select()
+                    self.selectedBall = ball
+                    self.isBallSelected = True
+                # Case(2): A ball is selected atm and the observed ball has a big rim.
+                #   -> Unselect all balls and set depending variables accordingly.
+                elif self.isBallSelected and ball.selected == BALL_MARK_L:
+                    for ball in self.balls:
+                        ball.select(False)
+                    self.isBallSelected = False
+                # Case(3): A ball is selected atm and the observed ball has a small rim.
+                #   -> Swap the colours of the selected and the observed ball, unselect
+                #      all balls and set depending variables accordingly.
+                elif self.isBallSelected and ball.selected == BALL_MARK_S:
+                    ball.colour = self.selectedBall.colour
+                    self.selectedBall.colour = WHITE
+                    for balls in self.balls:
+                        ball.select(False)
+                    self.isBallSelected = False
+                    self.counter += 1
+                break
+
+# -- HELPER FUNCTIONS -----------------------------------------------
+def distance(p0, p1):
+    """
+    Function distance(p0, p1):
+    Calculates the hysteresis between to given coordinates.
+
+    parm[in]    p0     Coordinates of first position 
+    parm[in]    p1     Coordinates of second position       
+    """
+    return ((p0[0]-p1[0])**2 + (p0[1]-p1[1])**2)**0.5
+
+
+# -- MAIN -----------------------------------------------------------
 def main():
     """
+    Function main():
     Main function that gets called on start and handles the whole game
     """
+    # Create a new game
+    game = Game()
 
     while g_running:
         # Poll for events
@@ -135,10 +231,10 @@ def main():
             if event.type == pygame.QUIT:
                 g_running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                Game.clicked(pygame.mouse.get_pos())
+                game.clicked(pygame.mouse.get_pos())
         
         # Call Game.draw() to set-up the playing field for a new frame.
-        Game.draw()
+        game.draw()
         pygame.display.flip()
         g_clock.tick(30)
 
@@ -146,18 +242,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-# def drawBoard(screen):
-#     """
-#     Function used to initially draw the playing field as a base for each new frame
-#     """
-#     g_screen.fill(BG_COLOUR)
-#     pygame.draw.circle(screen, RED, (400, 400), 40)
-
-
-# def init():
-#     """
-#     Init function that sets up all necessary initial configurations
-#     """
-#     dTime = 0
