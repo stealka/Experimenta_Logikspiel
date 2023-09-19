@@ -48,8 +48,6 @@ pygame.display.set_caption("Experimenta Logikspiel")
 g_font = pygame.font.SysFont(None, 24) 
 g_screen = pygame.display.set_mode(RESOLUTION)
 g_clock = pygame.time.Clock()
-g_running = True
-
 
 # -- CLASSES --------------------------------------------------------
 class Ball:
@@ -140,12 +138,12 @@ class Game:
                 # Check the ball for neighbour balls
                 if ball is not ballToCheck:
                     # Horizontal check
-                    if (abs(ball.coord[0] - ballToCheck[0]) == 1
-                    and abs(ball.coord[1] - ballToCheck[1])) == 0:
+                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
+                    and abs(ball.coord[1] - ballToCheck.coord[1])) == 0:
                         ball.neighbours.append(ballToCheck)
                     # Vertical check
-                    if (abs(ball.coord[0] - ballToCheck[0]) == 0
-                    and abs(ball.coord[1] - ballToCheck[1])) == 1:
+                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
+                    and abs(ball.coord[1] - ballToCheck.coord[1])) == 1:
                         ball.neighbours.append(ballToCheck)
 
     def draw(self):
@@ -196,7 +194,7 @@ class Game:
                 elif self.isBallSelected and ball.selected == BALL_MARK_S:
                     ball.colour = self.selectedBall.colour
                     self.selectedBall.colour = WHITE
-                    for balls in self.balls:
+                    for ball in self.balls:
                         ball.select(False)
                     self.isBallSelected = False
                     self.counter += 1
@@ -218,18 +216,22 @@ def distance(p0, p1):
 def main():
     """
     Function main():
-    Main function that gets called on start and handles the whole game
+    Main function that gets called on start and handles the whole game    
     """
+    # 
+    running = True
+    
+
     # Create a new game
     game = Game()
 
-    while g_running:
+    while running:
         # Poll for events
         for event in pygame.event.get():
             # pygame.QUIT event is called when user clicked X
             # to close the window
             if event.type == pygame.QUIT:
-                g_running = False
+                running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 game.clicked(pygame.mouse.get_pos())
         
