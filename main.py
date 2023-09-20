@@ -218,10 +218,9 @@ def main():
     Function main():
     Main function that gets called on start and handles the whole game    
     """
-    # 
+    # Set runner variable for a new game
     running = True
     
-
     # Create a new game
     game = Game()
 
