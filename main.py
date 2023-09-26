@@ -139,11 +139,11 @@ class Game:
                 if ball is not ballToCheck:
                     # Horizontal check
                     if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
-                    and abs(ball.coord[1] - ballToCheck.coord[1])) == 0:
+                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 0):
                         ball.neighbours.append(ballToCheck)
                     # Vertical check
                     if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
-                    and abs(ball.coord[1] - ballToCheck.coord[1])) == 1:
+                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 1):
                         ball.neighbours.append(ballToCheck)
 
     def draw(self):
@@ -207,7 +207,9 @@ def distance(p0, p1):
     Calculates the hysteresis between to given coordinates.
 
     parm[in]    p0     Coordinates of first position 
-    parm[in]    p1     Coordinates of second position       
+    parm[in]    p1     Coordinates of second position
+    
+    return      Hysteresis value between given coordinates     
     """
     return ((p0[0]-p1[0])**2 + (p0[1]-p1[1])**2)**0.5
 
