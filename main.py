@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------- #
 #   Version:    0.1  - Basic gameplay mechanic              | MSU | #
 #               0.2  - Rework and code documentation        | SKA | #
+#               0.3  - Rework optimize memory               | MSU | #
 # ----------------------------------------------------------------- #
 #                                                                   #
 #####################################################################
@@ -23,6 +24,7 @@ LH_RED   = ( 255, 153, 153)
 GREEN    = (   0, 255,   0)
 WHITE    = ( 255, 255, 255)
 
+
 RESOLUTION = ( 800, 600)
 BG_COLOUR  = ( 242,  82, 120)
 
@@ -32,11 +34,18 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
+# Colors - Playfield, Player1, Player2
+COLORS = [WHITE, BLACK, RED]
+
 # Playingfield coordinations - Level 1
-COORDS = [  (0,0, BLACK),                                           (4,0, RED),
-            (0,1, BLACK), (1,1, WHITE), (2,1, WHITE), (3,1, WHITE), (4,1, RED),
-            (0,2, BLACK),               (2,2, WHITE),               (4,2, RED),
-            (0,3, BLACK),                                           (4,3, RED)]
+COORDS = [  (0,0),                      (4,0),
+            (0,1), (1,1), (2,1), (3,1), (4,1),
+            (0,2),        (2,2),        (4,2),
+            (0,3),                      (4,3)]
+
+# Start and goal constellation - Level 1
+START = [1, 2, 1, 0, 0, 0, 2, 1, 0, 2, 1, 2]
+GOAL =  [2, 1, 2, 0, 0, 0, 1, 2, 0, 1, 2, 1]
 
 # -- GENERAL PYGAME SETTINGS ----------------------------------------
 # Initializing pygame module
@@ -55,22 +64,32 @@ class Ball:
     defines a single ball field item which can function as a token ball
     or a free field during one game.
     """
-    def __init__(self, coord):
+    def __init__(self, id):
         """
-        Function Ball.__init__(self, coord):
+        Function Ball.__init__(self, id):
         Creates main properties of a circle field with given properties
-        from a defined playing field coord[] -> COORDS_x[]
+        from a defined playing field id -> COORDS[id]
 
-        param[in]   coord   Playfield Array with circle properties
-                            (see COORDS_x[])
+        param[in]   id   Playfield Array id with circle properties
+                            (see COORDS[])
         """
-        # Setting up circle properties from given COORDS_x[]
-        self.coord      = (coord[0], coord[1])
-        self.colour     = coord[2]
-        self.position   = ((BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[0] + 1),
-                           (BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[1] + 1))
+        # Setting up circle properties from given COORDS[] and id
+        self.id         = id
+        self.colour     = START[id]
+        self.position   = ((BALL_DISTANCE + 2*BALL_RADIUS) * (COORDS[self.id][0]+1),
+                           (BALL_DISTANCE + 2*BALL_RADIUS) * (COORDS[self.id][1]+1))
         self.selected   = BALL_NOMARK
         self.neighbours = []
+
+        for index in range(len(COORDS)):
+            if self.id != index:
+                if abs(COORDS[self.id][0]-COORDS[index][0]) == 1 and
+                   abs(COORDS[self.id][1]-COORDS[index][1]) == 0:
+                    self.neighbours.append(index)
+
+                elif abs(COORDS[self.id][0]-COORDS[index][0]) == 0 and
+                     abs(COORDS[self.id][1]-COORDS[index][1]) == 1:
+                    self.neighbours.append(index)
 
 
     def draw(self):
@@ -96,20 +115,8 @@ class Ball:
         """
         if isMarked:
             self.selected = BALL_MARK_L
-            self.checkMove()
         else:
             self.selected = BALL_NOMARK
-
-    def checkMove(self):
-        """
-        Function Ball.checkMove(self):
-        Checks recursively which neighbours of the ball aren't occupied with another token
-        ball. If the neighbour is free (colour: WHITE) the property "selected" gets updated.
-        """
-        for selectableBall in self.neighbours:
-            if (selectableBall.colour is WHITE and selectableBall.selected == BALL_NOMARK):
-                selectableBall.selected = BALL_MARK_S
-                selectableBall.checkMove()
 
 class Game:
     def __init__(self):
