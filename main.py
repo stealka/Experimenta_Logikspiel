@@ -15,6 +15,7 @@
 # -- IMPORTS --------------------------------------------------------
 import pygame
 import time
+import copy
 
 # -- DEFINES --------------------------------------------------------
 BLACK    = (   0,   0,   0)
@@ -34,8 +35,8 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
-# Colors - Playfield, Player1, Player2
-COLORS = [WHITE, BLACK, RED]
+# Colours - Playfield, Player1, Player2
+COLOURS = [WHITE, BLACK, RED]
 
 # Playingfield coordinations - Level 1
 COORDS = [  (0,0),                      (4,0),
@@ -83,12 +84,10 @@ class Ball:
 
         for index in range(len(COORDS)):
             if self.id != index:
-                if abs(COORDS[self.id][0]-COORDS[index][0]) == 1 and
-                   abs(COORDS[self.id][1]-COORDS[index][1]) == 0:
+                if abs(COORDS[self.id][0]-COORDS[index][0]) == 1 and abs(COORDS[self.id][1]-COORDS[index][1]) == 0:
                     self.neighbours.append(index)
 
-                elif abs(COORDS[self.id][0]-COORDS[index][0]) == 0 and
-                     abs(COORDS[self.id][1]-COORDS[index][1]) == 1:
+                elif abs(COORDS[self.id][0]-COORDS[index][0]) == 0 and abs(COORDS[self.id][1]-COORDS[index][1]) == 1:
                     self.neighbours.append(index)
 
 
@@ -99,7 +98,7 @@ class Ball:
         Depending on the status of the selection property the circle gets highlighted
         with an additional rim.
         """
-        pygame.draw.circle(g_screen, self.colour, self.position, BALL_RADIUS)
+        pygame.draw.circle(g_screen, COLOURS[self.colour], self.position, BALL_RADIUS)
         if self.selected > BALL_NOMARK:
             pygame.draw.circle(g_screen, GREEN, self.position, BALL_RADIUS, self.selected)
 
@@ -131,27 +130,27 @@ class Game:
         """
         self.counter = 0                        # Moves counter for the game
         self.isBallSelected = False             # Boolean value if a ball is selected 
-        self.selectedBall = Ball((0,0, GREEN))  # Variable to hold the selected ball object
+        self.selectedBall = Ball(0)             # Variable to hold the selected ball object
         self.balls = []                         # List that holds all ball objects in COORDS
 
         # Append balls[]-list with a new ball for each ball in COORDS
         for coord in COORDS:
-            self.balls.append(Ball(coord))
+            self.balls.append(Ball(len(self.balls)))
 
-        # Iterate through all balls 
-        for ball in self.balls:
-            # Specify one ball to be checked
-            for ballToCheck in self.balls:
-                # Check the ball for neighbour balls
-                if ball is not ballToCheck:
-                    # Horizontal check
-                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
-                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 0):
-                        ball.neighbours.append(ballToCheck)
-                    # Vertical check
-                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
-                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 1):
-                        ball.neighbours.append(ballToCheck)
+        # # Iterate through all balls 
+        # for ball in self.balls:
+        #     # Specify one ball to be checked
+        #     for ballToCheck in self.balls:
+        #         # Check the ball for neighbour balls
+        #         if ball is not ballToCheck:
+        #             # Horizontal check
+        #             if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
+        #             and abs(ball.coord[1] - ballToCheck.coord[1]) == 0):
+        #                 ball.neighbours.append(ballToCheck)
+        #             # Vertical check
+        #             if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
+        #             and abs(ball.coord[1] - ballToCheck.coord[1]) == 1):
+        #                 ball.neighbours.append(ballToCheck)
 
     def draw(self):
         """
@@ -171,6 +170,34 @@ class Game:
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
         g_screen.blit(img, (20, 20))
 
+    def move(self, ball):
+        if not self.isBallSelected and ball.colour != 0:
+            ball.select()
+            checkBalls = []
+            checkBalls.append(ball.id)
+            while len(checkBalls) > 0:
+                for selectableBall in self.balls[checkBalls[0]].neighbours:
+                    if self.balls[selectableBall].colour == 0 and self.balls[selectableBall].selected == BALL_NOMARK:
+                        self.balls[selectableBall].selected = BALL_MARK_S
+                        checkBalls.append(selectableBall)
+                checkBalls.pop(0)
+
+            self.selectedBall = ball
+            self.isBallSelected = True
+
+        elif self.isBallSelected and ball.selected == BALL_MARK_L:
+            for ball in self.balls:
+                ball.select(False)
+            self.isBallSelected = False
+
+        elif self.isBallSelected and ball.selected == BALL_MARK_S:
+            ball.colour = self.selectedBall.colour
+            self.selectedBall.colour = 0
+            for ball in self.balls:
+                ball.select(False)
+            self.isBallSelected = False
+            self.counter += 1
+
     def clicked(self, position):
         """
         Function Game.clicked(self, position):
@@ -183,29 +210,87 @@ class Game:
         for ball in self.balls:
             # Check if the mouse position is inside the surface of the ball
             if (distance(position, ball.position) < BALL_RADIUS):
-                # Case(1): No ball is selected atm and the observed ball is not white.
-                #   -> Select it and set depending variables accordingly.
-                if not self.isBallSelected and ball.colour is not WHITE:
-                    ball.select()
-                    self.selectedBall = ball
-                    self.isBallSelected = True
-                # Case(2): A ball is selected atm and the observed ball has a big rim.
-                #   -> Unselect all balls and set depending variables accordingly.
-                elif self.isBallSelected and ball.selected == BALL_MARK_L:
-                    for ball in self.balls:
-                        ball.select(False)
-                    self.isBallSelected = False
-                # Case(3): A ball is selected atm and the observed ball has a small rim.
-                #   -> Swap the colours of the selected and the observed ball, unselect
-                #      all balls and set depending variables accordingly.
-                elif self.isBallSelected and ball.selected == BALL_MARK_S:
-                    ball.colour = self.selectedBall.colour
-                    self.selectedBall.colour = WHITE
-                    for ball in self.balls:
-                        ball.select(False)
-                    self.isBallSelected = False
-                    self.counter += 1
+                self.move(ball)
                 break
+                # # Case(1): No ball is selected atm and the observed ball is not white.
+                # #   -> Select it and set depending variables accordingly.
+                # if not self.isBallSelected and ball.colour is not WHITE:
+                #     ball.select()
+                #     self.selectedBall = ball
+                #     self.isBallSelected = True
+                # # Case(2): A ball is selected atm and the observed ball has a big rim.
+                # #   -> Unselect all balls and set depending variables accordingly.
+                # elif self.isBallSelected and ball.selected == BALL_MARK_L:
+                #     for ball in self.balls:
+                #         ball.select(False)
+                #     self.isBallSelected = False
+                # # Case(3): A ball is selected atm and the observed ball has a small rim.
+                # #   -> Swap the colours of the selected and the observed ball, unselect
+                # #      all balls and set depending variables accordingly.
+                # elif self.isBallSelected and ball.selected == BALL_MARK_S:
+                #     ball.colour = self.selectedBall.colour
+                #     self.selectedBall.colour = WHITE
+                #     for ball in self.balls:
+                #         ball.select(False)
+                #     self.isBallSelected = False
+                #     self.counter += 1
+                # break
+
+    def setState(self, state):
+        for i in range(len(self.balls)):
+            self.balls[i].colour = state[i]
+            self.balls[i].selected = BALL_NOMARK
+            self.isBallSelected = False
+
+    def getState(self):
+        state = []
+        for i in range(len(self.balls)):
+            state.append(self.balls[i].colour)
+        return state
+
+class State:
+    def __init__(self, id, inputState, parent, moves):
+        self.id = id
+        self.state = inputState
+        self.parent = parent
+        self.distanceToStart = moves
+        self.distanceToGoal = 0
+        self.stateValue = 0
+        self.calculateDistance()
+
+    def calculateDistance(self):
+        self.distanceToGoal = 0
+        noWhite = True
+        for index in range(len(self.state)):
+            if self.state[index] != GOAL[index]:
+                self.distanceToGoal += 1
+                if self.state[index] == 0:
+                    noWhite = False
+        if noWhite:
+            self.distanceToGoal += 1
+        self.stateValue = self.distanceToStart + self.distanceToGoal
+
+    def updateParent(self, newParent, newMoves):
+        self.parent = newParent
+        self.distanceToStart = newMoves
+        self.calculateDistance()
+
+    def getNeighbours(self):
+        neighbours = []
+        myGame = Game()
+        for position in range(len(GOAL)):
+            myGame.setState(self.state)
+            myGame.move(myGame.balls[position])
+            moves = []
+            for move in range(len(GOAL)):
+                if myGame.balls[move].selected == BALL_MARK_S:
+                    moves.append(move)
+            for move in moves:
+                myGame.setState(self.state)
+                myGame.move(myGame.balls[position])
+                myGame.move(myGame.balls[move])
+                neighbours.append(myGame.getState())
+        return neighbours
 
 # -- HELPER FUNCTIONS -----------------------------------------------
 def distance(p0, p1):
@@ -232,6 +317,50 @@ def main():
     
     # Create a new game
     game = Game()
+
+
+    solving = True
+
+    if solving:
+        states = []
+        checkStates = []
+        states.append(State(0, copy.deepcopy(game.getState()), 0, 0))
+        checkStates.append(0)
+
+        counter = 0
+
+        while running:
+            stateToBeCalculated = 0
+            stateValue = -1
+            for stateId in checkStates:
+                if stateValue == -1 or states[stateId].stateValue < stateValue:
+                    stateValue = states[stateId].stateValue
+                    stateToBeCalculated = states[stateId].id
+            checkStates.remove(stateToBeCalculated)
+
+            stateNeighbours = states[stateToBeCalculated].getNeighbours()
+            for stateNeighbour in stateNeighbours:
+                if stateNeighbour == GOAL:
+                    running = False
+                    print(str(states[stateToBeCalculated].distanceToStart + 1) + " moves needed!")
+                    
+                    break
+
+                stateInList = False
+                for state in states:
+                    if state.state == stateNeighbour:
+                        if state.distanceToStart > states[stateToBeCalculated].distanceToStart + 1:
+                            state.updateParent(stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1)
+                        stateInList = True
+                        break
+                if not stateInList:
+                    newId = len(states)
+                    states.append(State(newId, stateNeighbour, stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1))
+                    checkStates.append(newId)
+
+            if len(checkStates) == 0:
+                print("no solution found")
+                running = False
 
     while running:
         # Poll for events
