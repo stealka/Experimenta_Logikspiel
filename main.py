@@ -82,14 +82,19 @@ class Ball:
         self.selected   = BALL_NOMARK
         self.neighbours = []
 
+        # Iterate through all balls 
         for index in range(len(COORDS)):
             if self.id != index:
-                if abs(COORDS[self.id][0]-COORDS[index][0]) == 1 and abs(COORDS[self.id][1]-COORDS[index][1]) == 0:
+                # Check the ball for neighbour balls
+                # Horizontal check
+                if (abs(COORDS[self.id][0]-COORDS[index][0]) == 1
+                and abs(COORDS[self.id][1]-COORDS[index][1]) == 0):
                     self.neighbours.append(index)
 
-                elif abs(COORDS[self.id][0]-COORDS[index][0]) == 0 and abs(COORDS[self.id][1]-COORDS[index][1]) == 1:
+                # Vertical check
+                elif (abs(COORDS[self.id][0]-COORDS[index][0]) == 0
+                  and abs(COORDS[self.id][1]-COORDS[index][1]) == 1):
                     self.neighbours.append(index)
-
 
     def draw(self):
         """
@@ -137,21 +142,6 @@ class Game:
         for coord in COORDS:
             self.balls.append(Ball(len(self.balls)))
 
-        # # Iterate through all balls 
-        # for ball in self.balls:
-        #     # Specify one ball to be checked
-        #     for ballToCheck in self.balls:
-        #         # Check the ball for neighbour balls
-        #         if ball is not ballToCheck:
-        #             # Horizontal check
-        #             if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
-        #             and abs(ball.coord[1] - ballToCheck.coord[1]) == 0):
-        #                 ball.neighbours.append(ballToCheck)
-        #             # Vertical check
-        #             if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
-        #             and abs(ball.coord[1] - ballToCheck.coord[1]) == 1):
-        #                 ball.neighbours.append(ballToCheck)
-
     def draw(self):
         """
         Function Game.draw(self):
@@ -170,14 +160,18 @@ class Game:
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
         g_screen.blit(img, (20, 20))
 
+    # add comments
     def move(self, ball):
+        # Case(1): No ball is selected atm and the observed ball is not white.
+        #   -> Select it and set depending variables accordingly.
         if not self.isBallSelected and ball.colour != 0:
             ball.select()
             checkBalls = []
             checkBalls.append(ball.id)
             while len(checkBalls) > 0:
                 for selectableBall in self.balls[checkBalls[0]].neighbours:
-                    if self.balls[selectableBall].colour == 0 and self.balls[selectableBall].selected == BALL_NOMARK:
+                    if (self.balls[selectableBall].colour == 0 and 
+                        self.balls[selectableBall].selected == BALL_NOMARK):
                         self.balls[selectableBall].selected = BALL_MARK_S
                         checkBalls.append(selectableBall)
                 checkBalls.pop(0)
@@ -185,11 +179,16 @@ class Game:
             self.selectedBall = ball
             self.isBallSelected = True
 
+        # Case(2): A ball is selected atm and the observed ball has a big rim.
+        #   -> Unselect all balls and set depending variables accordingly.
         elif self.isBallSelected and ball.selected == BALL_MARK_L:
             for ball in self.balls:
                 ball.select(False)
             self.isBallSelected = False
 
+        # Case(3): A ball is selected atm and the observed ball has a small rim.
+        #   -> Swap the colours of the selected and the observed ball, unselect
+        #      all balls and set depending variables accordingly.
         elif self.isBallSelected and ball.selected == BALL_MARK_S:
             ball.colour = self.selectedBall.colour
             self.selectedBall.colour = 0
@@ -212,42 +211,22 @@ class Game:
             if (distance(position, ball.position) < BALL_RADIUS):
                 self.move(ball)
                 break
-                # # Case(1): No ball is selected atm and the observed ball is not white.
-                # #   -> Select it and set depending variables accordingly.
-                # if not self.isBallSelected and ball.colour is not WHITE:
-                #     ball.select()
-                #     self.selectedBall = ball
-                #     self.isBallSelected = True
-                # # Case(2): A ball is selected atm and the observed ball has a big rim.
-                # #   -> Unselect all balls and set depending variables accordingly.
-                # elif self.isBallSelected and ball.selected == BALL_MARK_L:
-                #     for ball in self.balls:
-                #         ball.select(False)
-                #     self.isBallSelected = False
-                # # Case(3): A ball is selected atm and the observed ball has a small rim.
-                # #   -> Swap the colours of the selected and the observed ball, unselect
-                # #      all balls and set depending variables accordingly.
-                # elif self.isBallSelected and ball.selected == BALL_MARK_S:
-                #     ball.colour = self.selectedBall.colour
-                #     self.selectedBall.colour = WHITE
-                #     for ball in self.balls:
-                #         ball.select(False)
-                #     self.isBallSelected = False
-                #     self.counter += 1
-                # break
 
+    # add comments
     def setState(self, state):
         for i in range(len(self.balls)):
             self.balls[i].colour = state[i]
             self.balls[i].selected = BALL_NOMARK
             self.isBallSelected = False
 
+    # add comments
     def getState(self):
         state = []
         for i in range(len(self.balls)):
             state.append(self.balls[i].colour)
         return state
 
+# add comments
 class State:
     def __init__(self, id, inputState, parent, moves):
         self.id = id
@@ -318,9 +297,9 @@ def main():
     # Create a new game
     game = Game()
 
-
+    # add comments
     solving = True
-
+    # add comments
     if solving:
         states = []
         checkStates = []
