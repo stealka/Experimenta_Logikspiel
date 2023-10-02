@@ -298,12 +298,12 @@ def main():
     game = Game()
 
     # add comments
-    solving = True
+    solving = False
     # add comments
     if solving:
         states = []
         checkStates = []
-        states.append(State(0, copy.deepcopy(game.getState()), 0, 0))
+        states.append(State(0, copy.deepcopy(game.getState()), -1, 0))
         checkStates.append(0)
 
         counter = 0
@@ -322,7 +322,35 @@ def main():
                 if stateNeighbour == GOAL:
                     running = False
                     print(str(states[stateToBeCalculated].distanceToStart + 1) + " moves needed!")
-                    
+                    previousState = GOAL
+                    currentState = states[stateToBeCalculated].state
+                    while stateToBeCalculated != 0:
+                        currentState = states[stateToBeCalculated].state
+                        displayedMove = ""
+                        for i in range(len(previousState)):
+                            if previousState[i] == 0 and currentState[i] > 0:
+                                displayedMove += str(COORDS[i])
+                                break
+                        displayedMove += " -> "
+                        for i in range(len(previousState)):
+                            if previousState[i] > 0 and currentState[i] == 0:
+                                displayedMove += str(COORDS[i])
+                                break
+                        print(displayedMove)
+                        previousState = currentState
+                        stateToBeCalculated = states[states[stateToBeCalculated].parent].id
+                    currentState = START
+                    displayedMove = ""
+                    for i in range(len(previousState)):
+                        if previousState[i] == 0 and currentState[i] > 0:
+                            displayedMove += str(COORDS[i])
+                            break
+                    displayedMove += " -> "
+                    for i in range(len(previousState)):
+                        if previousState[i] > 0 and currentState[i] == 0:
+                            displayedMove += str(COORDS[i])
+                            break
+                    print(displayedMove)
                     break
 
                 stateInList = False
