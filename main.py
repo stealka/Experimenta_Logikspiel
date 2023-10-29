@@ -16,18 +16,14 @@
 import pygame
 import time
 import copy
+import levels
 
 # -- DEFINES --------------------------------------------------------
-BLACK    = (   0,   0,   0)
-LH_BLACK = ( 153, 153, 153)
-RED      = ( 255,   0,   0)
-LH_RED   = ( 255, 153, 153)
-GREEN    = (   0, 255,   0)
-WHITE    = ( 255, 255, 255)
-
+BLACK      = (   0,   0,   0)
+GREEN      = (   0, 255,   0)
+BG_COLOUR  = ( 242,  82, 120)
 
 RESOLUTION = ( 800, 600)
-BG_COLOUR  = ( 242,  82, 120)
 
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
@@ -35,18 +31,12 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
-# Colours - Playfield, Player1, Player2
-COLOURS = [WHITE, BLACK, RED]
+# Playingfield coordinations - Level 0
+COORDS = levels.LEVEL_0_COORD
 
-# Playingfield coordinations - Level 1
-COORDS = [  (0,0),                      (4,0),
-            (0,1), (1,1), (2,1), (3,1), (4,1),
-            (0,2),        (2,2),        (4,2),
-            (0,3),                      (4,3)]
-
-# Start and goal constellation - Level 1
-START = [1, 2, 1, 0, 0, 0, 2, 1, 0, 2, 1, 2]
-GOAL =  [2, 1, 2, 0, 0, 0, 1, 2, 0, 1, 2, 1]
+# Start and goal constellation - Level 0
+START = levels.LEVEL_0_START
+GOAL =  levels.LEVEL_0_GOAL
 
 # -- GENERAL PYGAME SETTINGS ----------------------------------------
 # Initializing pygame module
@@ -71,8 +61,8 @@ class Ball:
         Creates main properties of a circle field with given properties
         from a defined playing field id -> COORDS[id]
 
-        param[in]   id   Playfield Array id with circle properties
-                            (see COORDS[])
+        param[in]   id  Playfield Array id with circle properties
+                        (see COORDS[])
         """
         # Setting up circle properties from given COORDS[] and id
         self.id         = id
@@ -103,7 +93,7 @@ class Ball:
         Depending on the status of the selection property the circle gets highlighted
         with an additional rim.
         """
-        pygame.draw.circle(g_screen, COLOURS[self.colour], self.position, BALL_RADIUS)
+        pygame.draw.circle(g_screen, levels.COLOURS[self.colour], self.position, BALL_RADIUS)
         if self.selected > BALL_NOMARK:
             pygame.draw.circle(g_screen, GREEN, self.position, BALL_RADIUS, self.selected)
 
@@ -145,7 +135,7 @@ class Game:
     def draw(self):
         """
         Function Game.draw(self):
-        Simple drwa function, that sets up the background and calls the Ball.draw()-function
+        Simple draw function, that sets up the background and calls the Ball.draw()-function
         for each ball used in the game.
         Furthermore the counter display gets added to picture.
         """
@@ -160,8 +150,16 @@ class Game:
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
         g_screen.blit(img, (20, 20))
 
-    # add comments
     def move(self, ball):
+        """
+        Function Game.move(self, ball):
+        Move function, that handles handles the action when the player clicks on 
+        a ball depending on the current ball state. The three cases are described
+        below.
+
+        param[in]   ball    clicked ball (Ball)
+        """
+
         # Case(1): No ball is selected atm and the observed ball is not white.
         #   -> Select it and set depending variables accordingly.
         if not self.isBallSelected and ball.colour != 0:
@@ -212,23 +210,42 @@ class Game:
                 self.move(ball)
                 break
 
-    # add comments
     def setState(self, state):
+        """
+        Function Game.setState(self, state):
+        Sets the state of the current game aka loading a game.
+
+        parma[in]   state   state to set / load
+        """
         for i in range(len(self.balls)):
             self.balls[i].colour = state[i]
             self.balls[i].selected = BALL_NOMARK
             self.isBallSelected = False
 
-    # add comments
     def getState(self):
+        """
+        Function Game.getState(self):
+        Gets the state of the current game aka saving a game.
+
+        return  state   state to get / safe
+        """
         state = []
         for i in range(len(self.balls)):
             state.append(self.balls[i].colour)
         return state
 
-# add comments
 class State:
     def __init__(self, id, inputState, parent, moves):
+        """
+        Function State.__init__(self, id, inputState, parent, moves):
+        This class defines the states relation by adding a parent and used moves to 
+        the state constellation. Also neighbours can be calculated.
+
+        parma[in]   id          state id
+        parma[in]   inputState  real state data
+        parma[in]   parent      state parent according to the shortest route
+        parma[in]   moves       moves needed to reach this state from START
+        """
         self.id = id
         self.state = inputState
         self.parent = parent
@@ -238,6 +255,13 @@ class State:
         self.calculateDistance()
 
     def calculateDistance(self):
+        """
+        Function State.calculateDistance(self):
+        Calculate the distance of the current state to the GOAL state
+        by assuming the player can move every ball everywhere. At least
+        one white "ball" has to be moved otherwise switching to balls
+        would only cost one move.
+        """
         self.distanceToGoal = 0
         noWhite = True
         for index in range(len(self.state)):
@@ -250,11 +274,26 @@ class State:
         self.stateValue = self.distanceToStart + self.distanceToGoal
 
     def updateParent(self, newParent, newMoves):
+        """
+        Function State.updateParent(self, newParent, newMoves):
+        If there has been found a shorter path to the current state,
+        update the parent and used moves.
+
+        parma[in]   newParent   state id
+        parma[in]   newMoves    real state data
+        """
         self.parent = newParent
         self.distanceToStart = newMoves
-        self.calculateDistance()
+        self.stateValue = self.distanceToStart + self.distanceToGoal
 
     def getNeighbours(self):
+        """
+        Function State.getNeighbours(self):
+        Calculate all neighbours of the current state aka positions after
+        all possible moves.
+        
+        return      neighbours  calculated state neighbours
+        """
         neighbours = []
         myGame = Game()
         for position in range(len(GOAL)):
@@ -297,18 +336,28 @@ def main():
     # Create a new game
     game = Game()
 
-    # add comments
-    solving = False
-    # add comments
+    # Set solving variable for this game
+    solving = True
+
+    # If solving is set to true, solve the current game instead of playing
     if solving:
+        # A list of all occured states of the game
         states = []
+
+        # A list of stats that have to be checked
         checkStates = []
+
+        # Appending the START state as a starting point
         states.append(State(0, copy.deepcopy(game.getState()), -1, 0))
         checkStates.append(0)
 
+        # Counter for counting the moves a player did
         counter = 0
 
+        # Main solving loop, which is running while no optimal solution is found
         while running:
+            # selecting the next stateToBeCalculated which is the state of 
+            # checkStates with the lowest stateValue
             stateToBeCalculated = 0
             stateValue = -1
             for stateId in checkStates:
@@ -317,8 +366,12 @@ def main():
                     stateToBeCalculated = states[stateId].id
             checkStates.remove(stateToBeCalculated)
 
+            # getting all neighbours of stateToBeCalculated aka possible moves
             stateNeighbours = states[stateToBeCalculated].getNeighbours()
+
+            # doing all possible moves for the current state
             for stateNeighbour in stateNeighbours:
+                # if the GOAL is reached, calculate the needed moves to display them
                 if stateNeighbour == GOAL:
                     running = False
                     print(str(states[stateToBeCalculated].distanceToStart + 1) + " moves needed!")
@@ -353,6 +406,8 @@ def main():
                     print(displayedMove)
                     break
 
+                # check if the new state is already in the states list
+                # if so, update the distanceToStart if necessary
                 stateInList = False
                 for state in states:
                     if state.state == stateNeighbour:
@@ -360,11 +415,14 @@ def main():
                             state.updateParent(stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1)
                         stateInList = True
                         break
+
+                # if the current state is not in states list, add them
                 if not stateInList:
                     newId = len(states)
                     states.append(State(newId, stateNeighbour, stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1))
                     checkStates.append(newId)
 
+            # all states have been checked, no solution has been found
             if len(checkStates) == 0:
                 print("no solution found")
                 running = False
