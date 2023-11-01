@@ -17,13 +17,11 @@ import pygame
 import time
 import copy
 import levels
+from globals import *
 
 # -- DEFINES --------------------------------------------------------
-BLACK      = (   0,   0,   0)
-GREEN      = (   0, 255,   0)
-BG_COLOUR  = ( 242,  82, 120)
 
-RESOLUTION = ( 800, 600)
+RESOLUTION = (800, 600)
 
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
@@ -113,6 +111,10 @@ class Ball:
             self.selected = BALL_NOMARK
 
 class Game:
+    """
+    The class Game: 
+    TODO[ADD] Description
+    """
     def __init__(self):
         """
         Function Game.__init__(self):
@@ -153,7 +155,7 @@ class Game:
     def move(self, ball):
         """
         Function Game.move(self, ball):
-        Move function, that handles handles the action when the player clicks on 
+        Move function, that handles the action when the player clicks on 
         a ball depending on the current ball state. The three cases are described
         below.
 
@@ -162,13 +164,13 @@ class Game:
 
         # Case(1): No ball is selected atm and the observed ball is not white.
         #   -> Select it and set depending variables accordingly.
-        if not self.isBallSelected and ball.colour != 0:
+        if not self.isBallSelected and ball.colour != N:
             ball.select()
             checkBalls = []
             checkBalls.append(ball.id)
             while len(checkBalls) > 0:
                 for selectableBall in self.balls[checkBalls[0]].neighbours:
-                    if (self.balls[selectableBall].colour == 0 and 
+                    if (self.balls[selectableBall].colour == N and 
                         self.balls[selectableBall].selected == BALL_NOMARK):
                         self.balls[selectableBall].selected = BALL_MARK_S
                         checkBalls.append(selectableBall)
@@ -189,7 +191,7 @@ class Game:
         #      all balls and set depending variables accordingly.
         elif self.isBallSelected and ball.selected == BALL_MARK_S:
             ball.colour = self.selectedBall.colour
-            self.selectedBall.colour = 0
+            self.selectedBall.colour = N
             for ball in self.balls:
                 ball.select(False)
             self.isBallSelected = False
@@ -201,7 +203,7 @@ class Game:
         Determines if the clicked-event is used on a ball, by comparing the mouse
         position to the position and the surface of each ball used in the game.
 
-        parma[in]   position    current position of the mouse during a click-event
+        param[in]   position    current position of the mouse during a click-event
         """
         # Iterate through all balls in the game
         for ball in self.balls:
@@ -215,7 +217,7 @@ class Game:
         Function Game.setState(self, state):
         Sets the state of the current game aka loading a game.
 
-        parma[in]   state   state to set / load
+        param[in]   state   state to set / load
         """
         for i in range(len(self.balls)):
             self.balls[i].colour = state[i]
@@ -235,16 +237,20 @@ class Game:
         return state
 
 class State:
+    """
+    The class State: 
+    TODO[ADD] Description
+    """
     def __init__(self, id, inputState, parent, moves):
         """
         Function State.__init__(self, id, inputState, parent, moves):
         This class defines the states relation by adding a parent and used moves to 
         the state constellation. Also neighbours can be calculated.
 
-        parma[in]   id          state id
-        parma[in]   inputState  real state data
-        parma[in]   parent      state parent according to the shortest route
-        parma[in]   moves       moves needed to reach this state from START
+        param[in]   id          state id
+        param[in]   inputState  real state data
+        param[in]   parent      state parent according to the shortest route
+        param[in]   moves       moves needed to reach this state from START
         """
         self.id = id
         self.state = inputState
@@ -267,10 +273,11 @@ class State:
         for index in range(len(self.state)):
             if self.state[index] != GOAL[index]:
                 self.distanceToGoal += 1
-                if self.state[index] == 0:
+                if self.state[index] == N:
                     noWhite = False
         if noWhite:
             self.distanceToGoal += 1
+
         self.stateValue = self.distanceToStart + self.distanceToGoal
 
     def updateParent(self, newParent, newMoves):
@@ -279,8 +286,8 @@ class State:
         If there has been found a shorter path to the current state,
         update the parent and used moves.
 
-        parma[in]   newParent   state id
-        parma[in]   newMoves    real state data
+        param[in]   newParent   state id
+        param[in]   newMoves    real state data
         """
         self.parent = newParent
         self.distanceToStart = newMoves
@@ -337,7 +344,7 @@ def main():
     game = Game()
 
     # Set solving variable for this game
-    solving = True
+    solving = False
 
     # If solving is set to true, solve the current game instead of playing
     if solving:

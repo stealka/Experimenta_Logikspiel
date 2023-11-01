@@ -1,14 +1,5 @@
-# Colours - Playfield, Player1, Player2
-WHITE    = ( 255, 255, 255)
-BLACK    = (   0,   0,   0)
-RED      = ( 255,   0,   0)
-
-COLOURS = [WHITE, BLACK, RED]
-
-# Numbercode for ball colours
-N  = 0    # Playfield
-P1 = 1    # Player 1
-P2 = 2    # Player 2
+# -- IMPORTS --------------------------------------------------------
+from globals import *
 
 # Description of levels
 LEVEL_0_COORD = [(0,0),                      (4,0),
