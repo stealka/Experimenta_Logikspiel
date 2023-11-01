@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------- #
 #   Version:    0.1  - Basic gameplay mechanic              | MSU | #
 #               0.2  - Rework and code documentation        | SKA | #
+#               0.3  - Rework optimize memory               | MSU | #
 # ----------------------------------------------------------------- #
 #                                                                   #
 #####################################################################
@@ -14,17 +15,13 @@
 # -- IMPORTS --------------------------------------------------------
 import pygame
 import time
+import copy
+import levels
+from globals import *
 
 # -- DEFINES --------------------------------------------------------
-BLACK    = (   0,   0,   0)
-LH_BLACK = ( 153, 153, 153)
-RED      = ( 255,   0,   0)
-LH_RED   = ( 255, 153, 153)
-GREEN    = (   0, 255,   0)
-WHITE    = ( 255, 255, 255)
 
-RESOLUTION = ( 800, 600)
-BG_COLOUR  = ( 242,  82, 120)
+RESOLUTION = (800, 600)
 
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
@@ -32,11 +29,12 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
-# Playingfield coordinations - Level 1
-COORDS = [  (0,0, BLACK),                                           (4,0, RED),
-            (0,1, BLACK), (1,1, WHITE), (2,1, WHITE), (3,1, WHITE), (4,1, RED),
-            (0,2, BLACK),               (2,2, WHITE),               (4,2, RED),
-            (0,3, BLACK),                                           (4,3, RED)]
+# Playingfield coordinations - Level 0
+COORDS = levels.LEVEL_0_COORD
+
+# Start and goal constellation - Level 0
+START = levels.LEVEL_0_START
+GOAL =  levels.LEVEL_0_GOAL
 
 # -- GENERAL PYGAME SETTINGS ----------------------------------------
 # Initializing pygame module
@@ -55,23 +53,36 @@ class Ball:
     defines a single ball field item which can function as a token ball
     or a free field during one game.
     """
-    def __init__(self, coord):
+    def __init__(self, id):
         """
-        Function Ball.__init__(self, coord):
+        Function Ball.__init__(self, id):
         Creates main properties of a circle field with given properties
-        from a defined playing field coord[] -> COORDS_x[]
+        from a defined playing field id -> COORDS[id]
 
-        param[in]   coord   Playfield Array with circle properties
-                            (see COORDS_x[])
+        param[in]   id  Playfield Array id with circle properties
+                        (see COORDS[])
         """
-        # Setting up circle properties from given COORDS_x[]
-        self.coord      = (coord[0], coord[1])
-        self.colour     = coord[2]
-        self.position   = ((BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[0] + 1),
-                           (BALL_DISTANCE + 2 * BALL_RADIUS) * (coord[1] + 1))
+        # Setting up circle properties from given COORDS[] and id
+        self.id         = id
+        self.colour     = START[id]
+        self.position   = ((BALL_DISTANCE + 2*BALL_RADIUS) * (COORDS[self.id][0]+1),
+                           (BALL_DISTANCE + 2*BALL_RADIUS) * (COORDS[self.id][1]+1))
         self.selected   = BALL_NOMARK
         self.neighbours = []
 
+        # Iterate through all balls 
+        for index in range(len(COORDS)):
+            if self.id != index:
+                # Check the ball for neighbour balls
+                # Horizontal check
+                if (abs(COORDS[self.id][0]-COORDS[index][0]) == 1
+                and abs(COORDS[self.id][1]-COORDS[index][1]) == 0):
+                    self.neighbours.append(index)
+
+                # Vertical check
+                elif (abs(COORDS[self.id][0]-COORDS[index][0]) == 0
+                  and abs(COORDS[self.id][1]-COORDS[index][1]) == 1):
+                    self.neighbours.append(index)
 
     def draw(self):
         """
@@ -80,7 +91,7 @@ class Ball:
         Depending on the status of the selection property the circle gets highlighted
         with an additional rim.
         """
-        pygame.draw.circle(g_screen, self.colour, self.position, BALL_RADIUS)
+        pygame.draw.circle(g_screen, levels.COLOURS[self.colour], self.position, BALL_RADIUS)
         if self.selected > BALL_NOMARK:
             pygame.draw.circle(g_screen, GREEN, self.position, BALL_RADIUS, self.selected)
 
@@ -96,22 +107,14 @@ class Ball:
         """
         if isMarked:
             self.selected = BALL_MARK_L
-            self.checkMove()
         else:
             self.selected = BALL_NOMARK
 
-    def checkMove(self):
-        """
-        Function Ball.checkMove(self):
-        Checks recursively which neighbours of the ball aren't occupied with another token
-        ball. If the neighbour is free (colour: WHITE) the property "selected" gets updated.
-        """
-        for selectableBall in self.neighbours:
-            if (selectableBall.colour is WHITE and selectableBall.selected == BALL_NOMARK):
-                selectableBall.selected = BALL_MARK_S
-                selectableBall.checkMove()
-
 class Game:
+    """
+    The class Game: 
+    TODO[ADD] Description
+    """
     def __init__(self):
         """
         Function Game.__init__(self):
@@ -124,32 +127,17 @@ class Game:
         """
         self.counter = 0                        # Moves counter for the game
         self.isBallSelected = False             # Boolean value if a ball is selected 
-        self.selectedBall = Ball((0,0, GREEN))  # Variable to hold the selected ball object
+        self.selectedBall = Ball(0)             # Variable to hold the selected ball object
         self.balls = []                         # List that holds all ball objects in COORDS
 
         # Append balls[]-list with a new ball for each ball in COORDS
         for coord in COORDS:
-            self.balls.append(Ball(coord))
-
-        # Iterate through all balls 
-        for ball in self.balls:
-            # Specify one ball to be checked
-            for ballToCheck in self.balls:
-                # Check the ball for neighbour balls
-                if ball is not ballToCheck:
-                    # Horizontal check
-                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 1
-                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 0):
-                        ball.neighbours.append(ballToCheck)
-                    # Vertical check
-                    if (abs(ball.coord[0] - ballToCheck.coord[0]) == 0
-                    and abs(ball.coord[1] - ballToCheck.coord[1]) == 1):
-                        ball.neighbours.append(ballToCheck)
+            self.balls.append(Ball(len(self.balls)))
 
     def draw(self):
         """
         Function Game.draw(self):
-        Simple drwa function, that sets up the background and calls the Ball.draw()-function
+        Simple draw function, that sets up the background and calls the Ball.draw()-function
         for each ball used in the game.
         Furthermore the counter display gets added to picture.
         """
@@ -164,41 +152,170 @@ class Game:
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
         g_screen.blit(img, (20, 20))
 
+    def move(self, ball):
+        """
+        Function Game.move(self, ball):
+        Move function, that handles the action when the player clicks on 
+        a ball depending on the current ball state. The three cases are described
+        below.
+
+        param[in]   ball    clicked ball (Ball)
+        """
+
+        # Case(1): No ball is selected atm and the observed ball is not white.
+        #   -> Select it and set depending variables accordingly.
+        if not self.isBallSelected and ball.colour != N:
+            ball.select()
+            checkBalls = []
+            checkBalls.append(ball.id)
+            while len(checkBalls) > 0:
+                for selectableBall in self.balls[checkBalls[0]].neighbours:
+                    if (self.balls[selectableBall].colour == N and 
+                        self.balls[selectableBall].selected == BALL_NOMARK):
+                        self.balls[selectableBall].selected = BALL_MARK_S
+                        checkBalls.append(selectableBall)
+                checkBalls.pop(0)
+
+            self.selectedBall = ball
+            self.isBallSelected = True
+
+        # Case(2): A ball is selected atm and the observed ball has a big rim.
+        #   -> Unselect all balls and set depending variables accordingly.
+        elif self.isBallSelected and ball.selected == BALL_MARK_L:
+            for ball in self.balls:
+                ball.select(False)
+            self.isBallSelected = False
+
+        # Case(3): A ball is selected atm and the observed ball has a small rim.
+        #   -> Swap the colours of the selected and the observed ball, unselect
+        #      all balls and set depending variables accordingly.
+        elif self.isBallSelected and ball.selected == BALL_MARK_S:
+            ball.colour = self.selectedBall.colour
+            self.selectedBall.colour = N
+            for ball in self.balls:
+                ball.select(False)
+            self.isBallSelected = False
+            self.counter += 1
+
     def clicked(self, position):
         """
         Function Game.clicked(self, position):
         Determines if the clicked-event is used on a ball, by comparing the mouse
         position to the position and the surface of each ball used in the game.
 
-        parma[in]   position    current position of the mouse during a click-event
+        param[in]   position    current position of the mouse during a click-event
         """
         # Iterate through all balls in the game
         for ball in self.balls:
             # Check if the mouse position is inside the surface of the ball
             if (distance(position, ball.position) < BALL_RADIUS):
-                # Case(1): No ball is selected atm and the observed ball is not white.
-                #   -> Select it and set depending variables accordingly.
-                if not self.isBallSelected and ball.colour is not WHITE:
-                    ball.select()
-                    self.selectedBall = ball
-                    self.isBallSelected = True
-                # Case(2): A ball is selected atm and the observed ball has a big rim.
-                #   -> Unselect all balls and set depending variables accordingly.
-                elif self.isBallSelected and ball.selected == BALL_MARK_L:
-                    for ball in self.balls:
-                        ball.select(False)
-                    self.isBallSelected = False
-                # Case(3): A ball is selected atm and the observed ball has a small rim.
-                #   -> Swap the colours of the selected and the observed ball, unselect
-                #      all balls and set depending variables accordingly.
-                elif self.isBallSelected and ball.selected == BALL_MARK_S:
-                    ball.colour = self.selectedBall.colour
-                    self.selectedBall.colour = WHITE
-                    for ball in self.balls:
-                        ball.select(False)
-                    self.isBallSelected = False
-                    self.counter += 1
+                self.move(ball)
                 break
+
+    def setState(self, state):
+        """
+        Function Game.setState(self, state):
+        Sets the state of the current game aka loading a game.
+
+        param[in]   state   state to set / load
+        """
+        for i in range(len(self.balls)):
+            self.balls[i].colour = state[i]
+            self.balls[i].selected = BALL_NOMARK
+            self.isBallSelected = False
+
+    def getState(self):
+        """
+        Function Game.getState(self):
+        Gets the state of the current game aka saving a game.
+
+        return  state   state to get / safe
+        """
+        state = []
+        for i in range(len(self.balls)):
+            state.append(self.balls[i].colour)
+        return state
+
+class State:
+    """
+    The class State: 
+    TODO[ADD] Description
+    """
+    def __init__(self, id, inputState, parent, moves):
+        """
+        Function State.__init__(self, id, inputState, parent, moves):
+        This class defines the states relation by adding a parent and used moves to 
+        the state constellation. Also neighbours can be calculated.
+
+        param[in]   id          state id
+        param[in]   inputState  real state data
+        param[in]   parent      state parent according to the shortest route
+        param[in]   moves       moves needed to reach this state from START
+        """
+        self.id = id
+        self.state = inputState
+        self.parent = parent
+        self.distanceToStart = moves
+        self.distanceToGoal = 0
+        self.stateValue = 0
+        self.calculateDistance()
+
+    def calculateDistance(self):
+        """
+        Function State.calculateDistance(self):
+        Calculate the distance of the current state to the GOAL state
+        by assuming the player can move every ball everywhere. At least
+        one white "ball" has to be moved otherwise switching to balls
+        would only cost one move.
+        """
+        self.distanceToGoal = 0
+        noWhite = True
+        for index in range(len(self.state)):
+            if self.state[index] != GOAL[index]:
+                self.distanceToGoal += 1
+                if self.state[index] == N:
+                    noWhite = False
+        if noWhite:
+            self.distanceToGoal += 1
+
+        self.stateValue = self.distanceToStart + self.distanceToGoal
+
+    def updateParent(self, newParent, newMoves):
+        """
+        Function State.updateParent(self, newParent, newMoves):
+        If there has been found a shorter path to the current state,
+        update the parent and used moves.
+
+        param[in]   newParent   state id
+        param[in]   newMoves    real state data
+        """
+        self.parent = newParent
+        self.distanceToStart = newMoves
+        self.stateValue = self.distanceToStart + self.distanceToGoal
+
+    def getNeighbours(self):
+        """
+        Function State.getNeighbours(self):
+        Calculate all neighbours of the current state aka positions after
+        all possible moves.
+        
+        return      neighbours  calculated state neighbours
+        """
+        neighbours = []
+        myGame = Game()
+        for position in range(len(GOAL)):
+            myGame.setState(self.state)
+            myGame.move(myGame.balls[position])
+            moves = []
+            for move in range(len(GOAL)):
+                if myGame.balls[move].selected == BALL_MARK_S:
+                    moves.append(move)
+            for move in moves:
+                myGame.setState(self.state)
+                myGame.move(myGame.balls[position])
+                myGame.move(myGame.balls[move])
+                neighbours.append(myGame.getState())
+        return neighbours
 
 # -- HELPER FUNCTIONS -----------------------------------------------
 def distance(p0, p1):
@@ -225,6 +342,97 @@ def main():
     
     # Create a new game
     game = Game()
+
+    # Set solving variable for this game
+    solving = False
+
+    # If solving is set to true, solve the current game instead of playing
+    if solving:
+        # A list of all occured states of the game
+        states = []
+
+        # A list of stats that have to be checked
+        checkStates = []
+
+        # Appending the START state as a starting point
+        states.append(State(0, copy.deepcopy(game.getState()), -1, 0))
+        checkStates.append(0)
+
+        # Counter for counting the moves a player did
+        counter = 0
+
+        # Main solving loop, which is running while no optimal solution is found
+        while running:
+            # selecting the next stateToBeCalculated which is the state of 
+            # checkStates with the lowest stateValue
+            stateToBeCalculated = 0
+            stateValue = -1
+            for stateId in checkStates:
+                if stateValue == -1 or states[stateId].stateValue < stateValue:
+                    stateValue = states[stateId].stateValue
+                    stateToBeCalculated = states[stateId].id
+            checkStates.remove(stateToBeCalculated)
+
+            # getting all neighbours of stateToBeCalculated aka possible moves
+            stateNeighbours = states[stateToBeCalculated].getNeighbours()
+
+            # doing all possible moves for the current state
+            for stateNeighbour in stateNeighbours:
+                # if the GOAL is reached, calculate the needed moves to display them
+                if stateNeighbour == GOAL:
+                    running = False
+                    print(str(states[stateToBeCalculated].distanceToStart + 1) + " moves needed!")
+                    previousState = GOAL
+                    currentState = states[stateToBeCalculated].state
+                    while stateToBeCalculated != 0:
+                        currentState = states[stateToBeCalculated].state
+                        displayedMove = ""
+                        for i in range(len(previousState)):
+                            if previousState[i] == 0 and currentState[i] > 0:
+                                displayedMove += str(COORDS[i])
+                                break
+                        displayedMove += " -> "
+                        for i in range(len(previousState)):
+                            if previousState[i] > 0 and currentState[i] == 0:
+                                displayedMove += str(COORDS[i])
+                                break
+                        print(displayedMove)
+                        previousState = currentState
+                        stateToBeCalculated = states[states[stateToBeCalculated].parent].id
+                    currentState = START
+                    displayedMove = ""
+                    for i in range(len(previousState)):
+                        if previousState[i] == 0 and currentState[i] > 0:
+                            displayedMove += str(COORDS[i])
+                            break
+                    displayedMove += " -> "
+                    for i in range(len(previousState)):
+                        if previousState[i] > 0 and currentState[i] == 0:
+                            displayedMove += str(COORDS[i])
+                            break
+                    print(displayedMove)
+                    break
+
+                # check if the new state is already in the states list
+                # if so, update the distanceToStart if necessary
+                stateInList = False
+                for state in states:
+                    if state.state == stateNeighbour:
+                        if state.distanceToStart > states[stateToBeCalculated].distanceToStart + 1:
+                            state.updateParent(stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1)
+                        stateInList = True
+                        break
+
+                # if the current state is not in states list, add them
+                if not stateInList:
+                    newId = len(states)
+                    states.append(State(newId, stateNeighbour, stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1))
+                    checkStates.append(newId)
+
+            # all states have been checked, no solution has been found
+            if len(checkStates) == 0:
+                print("no solution found")
+                running = False
 
     while running:
         # Poll for events
