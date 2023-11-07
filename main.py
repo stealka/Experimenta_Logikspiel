@@ -15,13 +15,12 @@
 # -- IMPORTS --------------------------------------------------------
 import pygame
 import time
-import copy
 import levels
 from globals import *
 
 # -- DEFINES --------------------------------------------------------
 
-RESOLUTION = (800, 600)
+RESOLUTION = (1400, 600)
 
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
@@ -29,12 +28,18 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
+# Variable if a solution should be searched instead of playing the game
+solving = False
+
+# Level selection
+currentLevel = 0
+
 # Playingfield coordinations - Level 0
-COORDS = levels.LEVEL_0_COORD
+COORDS = levels.LEVELS[currentLevel][0]
 
 # Start and goal constellation - Level 0
-START = levels.LEVEL_0_START
-GOAL =  levels.LEVEL_0_GOAL
+START = levels.LEVELS[currentLevel][1]
+GOAL =  levels.LEVELS[currentLevel][2]
 
 # -- GENERAL PYGAME SETTINGS ----------------------------------------
 # Initializing pygame module
@@ -234,7 +239,7 @@ class Game:
         state = []
         for i in range(len(self.balls)):
             state.append(self.balls[i].colour)
-        return state
+        return state[:]
 
 class State:
     """
@@ -342,9 +347,7 @@ def main():
     
     # Create a new game
     game = Game()
-
-    # Set solving variable for this game
-    solving = False
+    startTime = time.time()
 
     # If solving is set to true, solve the current game instead of playing
     if solving:
@@ -355,23 +358,13 @@ def main():
         checkStates = []
 
         # Appending the START state as a starting point
-        states.append(State(0, copy.deepcopy(game.getState()), -1, 0))
+        states.append(State(0, game.getState(), -1, 0))
         checkStates.append(0)
-
-        # Counter for counting the moves a player did
-        counter = 0
 
         # Main solving loop, which is running while no optimal solution is found
         while running:
-            # selecting the next stateToBeCalculated which is the state of 
-            # checkStates with the lowest stateValue
-            stateToBeCalculated = 0
-            stateValue = -1
-            for stateId in checkStates:
-                if stateValue == -1 or states[stateId].stateValue < stateValue:
-                    stateValue = states[stateId].stateValue
-                    stateToBeCalculated = states[stateId].id
-            checkStates.remove(stateToBeCalculated)
+            # selecting the next stateToBeCalculated
+            stateToBeCalculated = checkStates.pop(0)
 
             # getting all neighbours of stateToBeCalculated aka possible moves
             stateNeighbours = states[stateToBeCalculated].getNeighbours()
@@ -428,6 +421,8 @@ def main():
                     newId = len(states)
                     states.append(State(newId, stateNeighbour, stateToBeCalculated, states[stateToBeCalculated].distanceToStart + 1))
                     checkStates.append(newId)
+                    # sort the checkStates by its stateValues
+                    checkStates.sort(key=lambda x: states[x].stateValue)
 
             # all states have been checked, no solution has been found
             if len(checkStates) == 0:
@@ -450,6 +445,8 @@ def main():
         g_clock.tick(30)
 
     pygame.quit()
+
+    print(time.time() - startTime)
 
 if __name__ == '__main__':
     main()
