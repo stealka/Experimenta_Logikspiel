@@ -30,7 +30,7 @@ LEVEL 0: 30 moves needed! (read from bottom to top)
 (4, 1) -> (0, 1)
 (0, 1) -> (2, 2)
 
-LEVEL 1: 2 moves needed! (read from bottom to top) (Solution not proven to be ideal)
+LEVEL 1: 22 moves needed! (read from bottom to top) (Solution not proven to be ideal)
 (2, 2) -> (4, 1)
 (7, 1) -> (0, 1)
 (6, 2) -> (0, 0)
