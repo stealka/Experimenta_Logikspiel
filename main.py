@@ -28,6 +28,12 @@ BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
 
+BUTTON_STATE_DEFAULT = 0
+BUTTON_STATE_CLICKED = 1
+BUTTON_STATE_HOVERED = 2
+
+BUTTON_COLOURS = [(100,100,100),(200,200,200),(120,120,120)]
+
 # Variable if a solution should be searched instead of playing the game
 solving = False
 
@@ -134,10 +140,28 @@ class Game:
         self.isBallSelected = False             # Boolean value if a ball is selected 
         self.selectedBall = Ball(0)             # Variable to hold the selected ball object
         self.balls = []                         # List that holds all ball objects in COORDS
+        self.buttons = []                       # List that holds all button objects
+        self.moves = []                         # List that holds the last states to undo
 
         # Append balls[]-list with a new ball for each ball in COORDS
         for coord in COORDS:
             self.balls.append(Ball(len(self.balls)))
+
+        # Add Restart and Undo Button
+        self.buttons.append(Button((120,10,120,40), "Restart", self.__init__))
+        self.buttons.append(Button((260,10,120,40), " Undo", self.undo))
+
+        # Add initial state to moves
+        self.moves.append(START)
+
+    def undo(self):
+        """
+        TODO
+        """
+        if self.counter > 0:
+            self.counter -= 1
+            self.moves.pop()
+            self.setState(self.moves[-1])
 
     def draw(self):
         """
@@ -152,6 +176,10 @@ class Game:
         # Call the draw()-function for each ball of balls[] 
         for ball in self.balls:
             ball.draw()
+
+        # Call the draw()-function for each button of buttons[]
+        for button in self.buttons:
+            button.draw()
 
         # Add current moves counter to the canvas
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
@@ -201,6 +229,7 @@ class Game:
                 ball.select(False)
             self.isBallSelected = False
             self.counter += 1
+            self.moves.append(self.getState())
 
     def clicked(self, position):
         """
@@ -216,6 +245,19 @@ class Game:
             if (distance(position, ball.position) < BALL_RADIUS):
                 self.move(ball)
                 break
+
+        """
+        TODO
+        """
+        for button in self.buttons:
+            button.checkClicked(position)
+
+    """
+    TODO
+    """
+    def setMouse(self, position):
+        for button in self.buttons:
+            button.checkHover(position)
 
     def setState(self, state):
         """
@@ -321,6 +363,54 @@ class State:
                 myGame.move(myGame.balls[move])
                 neighbours.append(myGame.getState())
         return neighbours
+
+class Button:
+    """
+    TODO
+    """
+    def __init__(self, position, text, oneClickFunction):
+        """
+        TODO
+        """
+        self.position = position
+        self.textPosition = (self.position[0]+30, self.position[1] +self.position[3]-28)
+        self.text = text
+        self.oneClickFunction = oneClickFunction
+        self.state = BUTTON_STATE_DEFAULT
+
+    def draw(self):
+        """
+        Function Button.draw(self):
+        Simple draw function that places the rectangle on a new canvas frame.
+        If the Button object is hovered or clicked it changes its appearance.
+        """
+        pygame.draw.rect(g_screen, BUTTON_COLOURS[self.state], self.position)
+        img = g_font.render(str(self.text), True, BLACK)
+        g_screen.blit(img, self.textPosition)
+
+    def checkHover(self, position):
+        """
+        TODO
+        """
+        if  position[0] > (self.position[0])\
+        and position[0] < (self.position[0] + self.position[2])\
+        and position[1] > (self.position[1])\
+        and position[1] < (self.position[1] + self.position[3]):
+            self.state = BUTTON_STATE_HOVERED
+        else:
+            self.state = BUTTON_STATE_DEFAULT
+
+    def checkClicked(self, position):
+        """
+        Function Button.clicked(self, position):
+        Determines if the clicked-event is used on a button, by comparing the mouse
+        position to the position and the surface of each button used in the game.
+
+        param[in]   position    current position of the mouse during a click-event
+        """
+        if self.state == BUTTON_STATE_HOVERED:
+            self.state = BUTTON_STATE_CLICKED
+            self.oneClickFunction()
 
 # -- HELPER FUNCTIONS -----------------------------------------------
 def distance(p0, p1):
@@ -438,6 +528,8 @@ def main():
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 game.clicked(pygame.mouse.get_pos())
+            else:
+                game.setMouse(pygame.mouse.get_pos())
         
         # Call Game.draw() to set-up the playing field for a new frame.
         game.draw()
