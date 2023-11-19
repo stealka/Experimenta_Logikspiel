@@ -364,7 +364,7 @@ def main():
     Main function that gets called on start and handles the whole game    
     """
     # Set runner variable for a new game
-    running = True
+    running = False
     
     # Create a new game
     game = Game()
