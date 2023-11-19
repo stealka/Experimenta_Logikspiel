@@ -157,6 +157,27 @@ class Game:
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
         g_screen.blit(img, (20, 20))
 
+
+    def drawWinScreen(self):
+        """
+        Function Game.drawWinScreen(self):
+        Draw function, that sets up the Endscreen in case of finding the solution of the
+        riddle. It shows the amount of moves and the needed time [TODO Implement]
+        as well as giving the opportunity to start a new game or to quit [TODO Implement]. 
+        """
+        # Fill background of the playing field with the backgrond colour
+        g_screen.fill(BG_COLOUR)
+
+        # Call the draw()-function for each ball of balls[]
+        for ball in self.balls:
+            ball.draw()
+        
+        # Add the endscreen on top of the previous drawn endscreen
+        # [TODO Replace Numbers with Defines]
+        pygame.draw.rect(g_screen, WHITE, pygame.Rect(500, 150, 400, 300))      # Set Window
+        pygame.draw.rect(g_screen, BLACK, pygame.Rect(500, 150, 400, 300), 4)   # Set Frame
+
+
     def move(self, ball):
         """
         Function Game.move(self, ball):
@@ -343,7 +364,7 @@ def main():
     Main function that gets called on start and handles the whole game    
     """
     # Set runner variable for a new game
-    running = False
+    running = True
     
     # Create a new game
     game = Game()
@@ -445,9 +466,15 @@ def main():
         g_clock.tick(30)
 
         # Check for Win-Condition
-        if (game.getState() == GOAL):
-            # TODO: Create Endscreen at this point
+        #if (game.getState() == GOAL):
+        if(True):
             break
+
+    while True:
+        # TODO: Create Endscreen at this point
+        game.drawWinScreen()
+        pygame.display.flip()
+        g_clock.tick(30)
 
     pygame.quit()
 
