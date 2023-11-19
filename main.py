@@ -338,7 +338,7 @@ def main():
     Main function that gets called on start and handles the whole game    
     """
     # Set runner variable for a new game
-    running = True
+    running = False
     
     # Create a new game
     game = Game()
@@ -448,6 +448,11 @@ def main():
         game.draw()
         pygame.display.flip()
         g_clock.tick(30)
+
+        # Check for Win-Condition
+        if (game.getState() == GOAL):
+            # TODO: Create Endscreen at this point
+            break
 
     pygame.quit()
 
