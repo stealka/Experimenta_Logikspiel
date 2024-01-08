@@ -8,12 +8,14 @@
 #   Version:    0.1  - Basic gameplay mechanic              | MSU | #
 #               0.2  - Rework and code documentation        | SKA | #
 #               0.3  - Rework optimize memory               | MSU | #
+#               0.4  - Added Buttons (Undo and Restart)     | MSU | #
 # ----------------------------------------------------------------- #
 #                                                                   #
 #####################################################################
 
 # -- IMPORTS --------------------------------------------------------
 import pygame
+from gameEngineElements import *
 import time
 import levels
 from globals import *
@@ -22,17 +24,16 @@ from globals import *
 
 RESOLUTION = (1400, 600)
 
+BUTTON_POSITION_RESTART = (120,10)
+BUTTON_POSITION_UNDO    = (260,10)
+BUTTON_SIZE_RESTART     = (120,40)
+BUTTON_SIZE_UNDO        = (120,40)
+
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
 BALL_MARK_L    = 10
 BALL_NOMARK    =  0
 BALL_DISTANCE  = 30
-
-BUTTON_STATE_DEFAULT = 0
-BUTTON_STATE_CLICKED = 1
-BUTTON_STATE_HOVERED = 2
-
-BUTTON_COLOURS = [(100,100,100),(200,200,200),(120,120,120)]
 
 # Variable if a solution should be searched instead of playing the game
 solving = False
@@ -60,8 +61,8 @@ g_clock = pygame.time.Clock()
 
 # -- CLASSES --------------------------------------------------------
 class Ball:
-    """ The class Ball
-    defines a single ball field item which can function as a token ball
+    """
+    The class Ball defines a single ball field item which can function as a token ball
     or a free field during one game.
     """
     def __init__(self, id):
@@ -123,8 +124,8 @@ class Ball:
 
 class Game:
     """
-    The class Game: 
-    TODO[ADD] Description
+    The class Game defines the main instance of the game. It sets up the game elements,
+    userinterface, defines the move and draw functions and handles user input.
     """
     def __init__(self):
         """
@@ -148,15 +149,16 @@ class Game:
             self.balls.append(Ball(len(self.balls)))
 
         # Add Restart and Undo Button
-        self.buttons.append(Button((120,10,120,40), "Restart", self.__init__))
-        self.buttons.append(Button((260,10,120,40), " Undo", self.undo))
+        self.buttons.append(Button(g_screen, (BUTTON_POSITION_RESTART[0],BUTTON_POSITION_RESTART[1],BUTTON_SIZE_RESTART[0],BUTTON_SIZE_RESTART[1]), "Restart", g_font, self.__init__))
+        self.buttons.append(Button(g_screen, (BUTTON_POSITION_UNDO[0],BUTTON_POSITION_UNDO[1],BUTTON_SIZE_UNDO[0],BUTTON_SIZE_UNDO[1]), " Undo", g_font, self.undo))
 
         # Add initial state to moves
         self.moves.append(START)
 
     def undo(self):
         """
-        TODO
+        Function Game.undo(self):
+        If more than one move has been done, this function resets the game state to the state before.
         """
         if self.counter > 0:
             self.counter -= 1
@@ -246,16 +248,12 @@ class Game:
                 self.move(ball)
                 break
 
-        """
-        TODO
-        """
+        # Iterate through all buttons in the game
         for button in self.buttons:
             button.checkClicked(position)
 
-    """
-    TODO
-    """
     def setMouse(self, position):
+        # Iterate through all buttons in the game and check if the mouse hovers it
         for button in self.buttons:
             button.checkHover(position)
 
@@ -286,7 +284,9 @@ class Game:
 class State:
     """
     The class State: 
-    TODO[ADD] Description
+    The basic functionality of this class is to preserve and continue a game state.
+    It can be described and some kind of save an load functionality. In addition to
+    that it adds some function to calculate the fastest solution.
     """
     def __init__(self, id, inputState, parent, moves):
         """
@@ -363,54 +363,6 @@ class State:
                 myGame.move(myGame.balls[move])
                 neighbours.append(myGame.getState())
         return neighbours
-
-class Button:
-    """
-    TODO
-    """
-    def __init__(self, position, text, oneClickFunction):
-        """
-        TODO
-        """
-        self.position = position
-        self.textPosition = (self.position[0]+30, self.position[1] +self.position[3]-28)
-        self.text = text
-        self.oneClickFunction = oneClickFunction
-        self.state = BUTTON_STATE_DEFAULT
-
-    def draw(self):
-        """
-        Function Button.draw(self):
-        Simple draw function that places the rectangle on a new canvas frame.
-        If the Button object is hovered or clicked it changes its appearance.
-        """
-        pygame.draw.rect(g_screen, BUTTON_COLOURS[self.state], self.position)
-        img = g_font.render(str(self.text), True, BLACK)
-        g_screen.blit(img, self.textPosition)
-
-    def checkHover(self, position):
-        """
-        TODO
-        """
-        if  position[0] > (self.position[0])\
-        and position[0] < (self.position[0] + self.position[2])\
-        and position[1] > (self.position[1])\
-        and position[1] < (self.position[1] + self.position[3]):
-            self.state = BUTTON_STATE_HOVERED
-        else:
-            self.state = BUTTON_STATE_DEFAULT
-
-    def checkClicked(self, position):
-        """
-        Function Button.clicked(self, position):
-        Determines if the clicked-event is used on a button, by comparing the mouse
-        position to the position and the surface of each button used in the game.
-
-        param[in]   position    current position of the mouse during a click-event
-        """
-        if self.state == BUTTON_STATE_HOVERED:
-            self.state = BUTTON_STATE_CLICKED
-            self.oneClickFunction()
 
 # -- HELPER FUNCTIONS -----------------------------------------------
 def distance(p0, p1):
