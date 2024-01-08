@@ -8,12 +8,14 @@
 #   Version:    0.1  - Basic gameplay mechanic              | MSU | #
 #               0.2  - Rework and code documentation        | SKA | #
 #               0.3  - Rework optimize memory               | MSU | #
+#               0.4  - Added Buttons (Undo and Restart)     | MSU | #
 # ----------------------------------------------------------------- #
 #                                                                   #
 #####################################################################
 
 # -- IMPORTS --------------------------------------------------------
 import pygame
+from gameEngineElements import *
 import time
 import levels
 from globals import *
@@ -21,6 +23,11 @@ from globals import *
 # -- DEFINES --------------------------------------------------------
 
 RESOLUTION = (1400, 600)
+
+BUTTON_POSITION_RESTART = (120,10)
+BUTTON_POSITION_UNDO    = (260,10)
+BUTTON_SIZE_RESTART     = (120,40)
+BUTTON_SIZE_UNDO        = (120,40)
 
 BALL_RADIUS    = 50
 BALL_MARK_S    =  3
@@ -54,8 +61,8 @@ g_clock = pygame.time.Clock()
 
 # -- CLASSES --------------------------------------------------------
 class Ball:
-    """ The class Ball
-    defines a single ball field item which can function as a token ball
+    """
+    The class Ball defines a single ball field item which can function as a token ball
     or a free field during one game.
     """
     def __init__(self, id):
@@ -117,8 +124,8 @@ class Ball:
 
 class Game:
     """
-    The class Game: 
-    TODO[ADD] Description
+    The class Game defines the main instance of the game. It sets up the game elements,
+    userinterface, defines the move and draw functions and handles user input.
     """
     def __init__(self):
         """
@@ -134,10 +141,29 @@ class Game:
         self.isBallSelected = False             # Boolean value if a ball is selected 
         self.selectedBall = Ball(0)             # Variable to hold the selected ball object
         self.balls = []                         # List that holds all ball objects in COORDS
+        self.buttons = []                       # List that holds all button objects
+        self.moves = []                         # List that holds the last states to undo
 
         # Append balls[]-list with a new ball for each ball in COORDS
         for coord in COORDS:
             self.balls.append(Ball(len(self.balls)))
+
+        # Add Restart and Undo Button
+        self.buttons.append(Button(g_screen, (BUTTON_POSITION_RESTART[0],BUTTON_POSITION_RESTART[1],BUTTON_SIZE_RESTART[0],BUTTON_SIZE_RESTART[1]), "Restart", g_font, self.__init__))
+        self.buttons.append(Button(g_screen, (BUTTON_POSITION_UNDO[0],BUTTON_POSITION_UNDO[1],BUTTON_SIZE_UNDO[0],BUTTON_SIZE_UNDO[1]), " Undo", g_font, self.undo))
+
+        # Add initial state to moves
+        self.moves.append(START)
+
+    def undo(self):
+        """
+        Function Game.undo(self):
+        If more than one move has been done, this function resets the game state to the state before.
+        """
+        if self.counter > 0:
+            self.counter -= 1
+            self.moves.pop()
+            self.setState(self.moves[-1])
 
     def draw(self):
         """
@@ -152,6 +178,10 @@ class Game:
         # Call the draw()-function for each ball of balls[] 
         for ball in self.balls:
             ball.draw()
+
+        # Call the draw()-function for each button of buttons[]
+        for button in self.buttons:
+            button.draw()
 
         # Add current moves counter to the canvas
         img = g_font.render("Moves: " + str(self.counter), True, BLACK)
@@ -201,6 +231,7 @@ class Game:
                 ball.select(False)
             self.isBallSelected = False
             self.counter += 1
+            self.moves.append(self.getState())
 
     def clicked(self, position):
         """
@@ -216,6 +247,15 @@ class Game:
             if (distance(position, ball.position) < BALL_RADIUS):
                 self.move(ball)
                 break
+
+        # Iterate through all buttons in the game
+        for button in self.buttons:
+            button.checkClicked(position)
+
+    def setMouse(self, position):
+        # Iterate through all buttons in the game and check if the mouse hovers it
+        for button in self.buttons:
+            button.checkHover(position)
 
     def setState(self, state):
         """
@@ -244,7 +284,9 @@ class Game:
 class State:
     """
     The class State: 
-    TODO[ADD] Description
+    The basic functionality of this class is to preserve and continue a game state.
+    It can be described and some kind of save an load functionality. In addition to
+    that it adds some function to calculate the fastest solution.
     """
     def __init__(self, id, inputState, parent, moves):
         """
@@ -438,6 +480,8 @@ def main():
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 game.clicked(pygame.mouse.get_pos())
+            else:
+                game.setMouse(pygame.mouse.get_pos())
         
         # Call Game.draw() to set-up the playing field for a new frame.
         game.draw()
